@@ -13,22 +13,29 @@ def normalize(value):
         return ""
     return str(value).strip().replace('\u200f', '').replace('\u202a', '').replace('\xa0', '').replace(" ", "")
 
-# إعداد الصفحة
+def render_table(data_dict, title):
+    html = f"<h3 style='color:#2c3e50;'>{title}</h3><table style='width:100%; direction:rtl; border-collapse:collapse;'>"
+    html += "<tr style='background-color:#f3f3f3;'><th style='padding:10px;border:1px solid #ccc;'>المعلومة</th><th style='padding:10px;border:1px solid #ccc;'>القيمة</th></tr>"
+    for key, value in data_dict.items():
+        html += f"<tr><td style='padding:10px;border:1px solid #ccc;'>{key}</td><td style='padding:10px;border:1px solid #ccc;'>{value}</td></tr>"
+    html += "</table><br>"
+    return html
+
+# واجهة المستخدم
 st.set_page_config(page_title="Asset Lookup System", layout="wide", page_icon="📁")
-st.title("🔍 Asset Lookup System")
+st.title("🔍 نظام البحث عن الأصول")
 
 # البحث متعدد المعايير
-st.sidebar.header("🔎 Filters")
+st.sidebar.header("🔎 خيارات البحث")
 
-tag_number = st.sidebar.text_input("Tag Number")
-entity = st.sidebar.selectbox("Entity", [""] + sorted(df["Entity"].dropna().unique().astype(str)))
-city = st.sidebar.selectbox("City", [""] + sorted(df["City"].dropna().unique().astype(str)))
-min_cost = st.sidebar.number_input("Minimum Cost", min_value=0, value=0)
-max_life = st.sidebar.number_input("Max Useful Life", min_value=0, value=100)
+tag_number = st.sidebar.text_input("رقم الأصل")
+entity = st.sidebar.selectbox("الجهة", [""] + sorted(df["Entity"].dropna().unique().astype(str)))
+city = st.sidebar.selectbox("المدينة", [""] + sorted(df["City"].dropna().unique().astype(str)))
+min_cost = st.sidebar.number_input("الحد الأدنى للتكلفة", min_value=0, value=0)
+max_life = st.sidebar.number_input("الحد الأقصى للعمر الإنتاجي", min_value=0, value=100)
 
 # تطبيق الفلاتر
 filtered_df = df.copy()
-
 if tag_number:
     filtered_df = filtered_df[filtered_df["Tag number"].astype(str).apply(normalize) == normalize(tag_number)]
 if entity:
@@ -40,52 +47,48 @@ if min_cost > 0:
 if max_life < 100:
     filtered_df = filtered_df[pd.to_numeric(filtered_df["Useful Life"], errors='coerce') <= max_life]
 
+# عرض التفاصيل
 if not filtered_df.empty:
     record = filtered_df.iloc[0]
-    st.success("✅ Asset found. See details below:")
 
-    # معلومات الأصل العامة
     general_info = {
-        "Tag Number": record.get("Tag number", "N/A"),
-        "Asset Description": record.get("Asset Description", "N/A"),
-        "Entity": record.get("Entity", "N/A"),
-        "Entity Code": record.get("Entity Code", "N/A"),
-        "Cost": record.get("Cost", "N/A"),
-        "Useful Life": record.get("Useful Life", "N/A"),
-        "Remaining Life": record.get("Remaining Life", "N/A"),
-        "City": record.get("City", "N/A"),
-        "Region": record.get("Region", "N/A"),
-        "National Address ID": record.get("National Address ID", "N/A"),
-        "Building Number": record.get("Building Number", "N/A"),
-        "Floors Number": record.get("Floors Number", "N/A"),
-        "Room/office Number": record.get("Room/office Number", "N/A"),
-        "Geographical Coordinates": record.get("Geographical Coordinates", "N/A"),
-        "Valuation Method": record.get("Valuation Method", "N/A"),
-        "Comments": record.get("Comments", "N/A")
+        "رقم الأصل": record.get("Tag number", "N/A"),
+        "وصف الأصل": record.get("Asset Description", "N/A"),
+        "الجهة": record.get("Entity", "N/A"),
+        "رمز الجهة": record.get("Entity Code", "N/A"),
+        "التكلفة": record.get("Cost", "N/A"),
+        "العمر الإنتاجي": record.get("Useful Life", "N/A"),
+        "العمر المتبقي": record.get("Remaining Life", "N/A"),
+        "المدينة": record.get("City", "N/A"),
+        "المنطقة": record.get("Region", "N/A"),
+        "رقم المبنى": record.get("Building Number", "N/A"),
+        "رقم الدور": record.get("Floors Number", "N/A"),
+        "رقم الغرفة / المكتب": record.get("Room/office Number", "N/A"),
+        "العنوان الوطني": record.get("National Address ID", "N/A"),
+        "طريقة التقييم": record.get("Valuation Method", "N/A"),
+        "الإحداثيات الجغرافية": record.get("Geographical Coordinates", "N/A"),
+        "ملاحظات": record.get("Comments", "N/A")
     }
 
-    # معلومات التصنيف المحاسبي
-    accounting_info = {
-        "Level 1 Code": record.get("Level 1 FA Module Code", "N/A"),
-        "Level 1 Desc (AR)": record.get("Level 1 FA Module - Arabic Description", "N/A"),
-        "Level 1 Desc (EN)": record.get("Level 1 FA Module - English Description", "N/A"),
-        "Level 2 Code": record.get("Level 2 FA Module Code", "N/A"),
-        "Level 2 Desc (AR)": record.get("Level 2 FA Module - Arabic Description", "N/A"),
-        "Level 2 Desc (EN)": record.get("Level 2 FA Module - English Description", "N/A"),
-        "Level 3 Code": record.get("Level 3 FA Module Code", "N/A"),
-        "Level 3 Desc (AR)": record.get("Level 3 FA Module - Arabic Description", "N/A"),
-        "Level 3 Desc (EN)": record.get("Level 3 FA Module - English Description", "N/A"),
-        "Accounting Group Code": record.get("accounting group Code", "N/A"),
-        "Accounting Group Desc (AR)": record.get("accounting group Arabic Description", "N/A"),
-        "Accounting Group Desc (EN)": record.get("accounting group English Description", "N/A"),
-        "Asset Code for Accounting": record.get("Asset Code For Accounting Purpose", "N/A")
+    classification_info = {
+        "رمز التصنيف - المستوى الأول": record.get("Level 1 FA Module Code", "N/A"),
+        "الوصف (عربي) - المستوى الأول": record.get("Level 1 FA Module - Arabic Description", "N/A"),
+        "الوصف (إنجليزي) - المستوى الأول": record.get("Level 1 FA Module - English Description", "N/A"),
+        "رمز التصنيف - المستوى الثاني": record.get("Level 2 FA Module Code", "N/A"),
+        "الوصف (عربي) - المستوى الثاني": record.get("Level 2 FA Module - Arabic Description", "N/A"),
+        "الوصف (إنجليزي) - المستوى الثاني": record.get("Level 2 FA Module - English Description", "N/A"),
+        "رمز التصنيف - المستوى الثالث": record.get("Level 3 FA Module Code", "N/A"),
+        "الوصف (عربي) - المستوى الثالث": record.get("Level 3 FA Module - Arabic Description", "N/A"),
+        "الوصف (إنجليزي) - المستوى الثالث": record.get("Level 3 FA Module - English Description", "N/A"),
+        "رمز المجموعة المحاسبية": record.get("accounting group Code", "N/A"),
+        "الوصف (عربي) - المجموعة المحاسبية": record.get("accounting group Arabic Description", "N/A"),
+        "الوصف (إنجليزي) - المجموعة المحاسبية": record.get("accounting group English Description", "N/A"),
+        "رمز الأصل لغرض المحاسبة": record.get("Asset Code For Accounting Purpose", "N/A")
     }
 
-    st.subheader("📋 General Asset Information")
-    st.dataframe(pd.DataFrame(general_info.items(), columns=["Field", "Value"]))
-
-    st.subheader("📊 Accounting Classification")
-    st.dataframe(pd.DataFrame(accounting_info.items(), columns=["Field", "Value"]))
+    # عرض الجداول
+    st.markdown(render_table(general_info, "📋 معلومات الأصل العامة"), unsafe_allow_html=True)
+    st.markdown(render_table(classification_info, "📊 التصنيف المحاسبي"), unsafe_allow_html=True)
 
     # عرض الخريطة التفاعلية
     coords = record.get("Geographical Coordinates")
@@ -93,10 +96,10 @@ if not filtered_df.empty:
         try:
             lat, lon = map(float, coords.split(","))
             m = folium.Map(location=[lat, lon], zoom_start=16)
-            folium.Marker([lat, lon], tooltip="Asset Location").add_to(m)
-            st.subheader("🗺️ Asset Location on Map")
+            folium.Marker([lat, lon], tooltip="موقع الأصل").add_to(m)
+            st.subheader("🗺️ موقع الأصل على الخريطة")
             st_folium(m, width=700, height=500)
         except:
-            st.warning("⚠️ Could not parse coordinates.")
+            st.warning("⚠️ تعذر تحليل الإحداثيات.")
 else:
-    st.warning("🔍 No matching assets found. Adjust your filters and try again.")
+    st.warning("🔍 لم يتم العثور على أصول مطابقة. يرجى تعديل الفلاتر.")
