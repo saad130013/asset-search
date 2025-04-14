@@ -42,9 +42,10 @@ if max_life < 100:
 
 if not filtered_df.empty:
     record = filtered_df.iloc[0]
-    st.success("✅ Asset found. Details below:")
+    st.success("✅ Asset found. See details below:")
 
-    fields = {
+    # معلومات الأصل العامة
+    general_info = {
         "Tag Number": record.get("Tag number", "N/A"),
         "Asset Description": record.get("Asset Description", "N/A"),
         "Entity": record.get("Entity", "N/A"),
@@ -59,32 +60,41 @@ if not filtered_df.empty:
         "Floors Number": record.get("Floors Number", "N/A"),
         "Room/office Number": record.get("Room/office Number", "N/A"),
         "Geographical Coordinates": record.get("Geographical Coordinates", "N/A"),
-        "Level 1 FA Module Code": record.get("Level 1 FA Module Code", "N/A"),
-        "Level 1 FA Module - Arabic Description": record.get("Level 1 FA Module - Arabic Description", "N/A"),
-        "Level 1 FA Module - English Description": record.get("Level 1 FA Module - English Description", "N/A"),
-        "Level 2 FA Module Code": record.get("Level 2 FA Module Code", "N/A"),
-        "Level 2 FA Module - Arabic Description": record.get("Level 2 FA Module - Arabic Description", "N/A"),
-        "Level 2 FA Module - English Description": record.get("Level 2 FA Module - English Description", "N/A"),
-        "Level 3 FA Module Code": record.get("Level 3 FA Module Code", "N/A"),
-        "Level 3 FA Module - Arabic Description": record.get("Level 3 FA Module - Arabic Description", "N/A"),
-        "Level 3 FA Module - English Description": record.get("Level 3 FA Module - English Description", "N/A"),
-        "accounting group Code": record.get("accounting group Code", "N/A"),
-        "accounting group Arabic Description": record.get("accounting group Arabic Description", "N/A"),
-        "accounting group English Description": record.get("accounting group English Description", "N/A"),
-        "Asset Code For Accounting Purpose": record.get("Asset Code For Accounting Purpose", "N/A")
+        "Valuation Method": record.get("Valuation Method", "N/A"),
+        "Comments": record.get("Comments", "N/A")
     }
 
-    for key, value in fields.items():
-        st.write(f"**{key}**: {value}")
+    # معلومات التصنيف المحاسبي
+    accounting_info = {
+        "Level 1 Code": record.get("Level 1 FA Module Code", "N/A"),
+        "Level 1 Desc (AR)": record.get("Level 1 FA Module - Arabic Description", "N/A"),
+        "Level 1 Desc (EN)": record.get("Level 1 FA Module - English Description", "N/A"),
+        "Level 2 Code": record.get("Level 2 FA Module Code", "N/A"),
+        "Level 2 Desc (AR)": record.get("Level 2 FA Module - Arabic Description", "N/A"),
+        "Level 2 Desc (EN)": record.get("Level 2 FA Module - English Description", "N/A"),
+        "Level 3 Code": record.get("Level 3 FA Module Code", "N/A"),
+        "Level 3 Desc (AR)": record.get("Level 3 FA Module - Arabic Description", "N/A"),
+        "Level 3 Desc (EN)": record.get("Level 3 FA Module - English Description", "N/A"),
+        "Accounting Group Code": record.get("accounting group Code", "N/A"),
+        "Accounting Group Desc (AR)": record.get("accounting group Arabic Description", "N/A"),
+        "Accounting Group Desc (EN)": record.get("accounting group English Description", "N/A"),
+        "Asset Code for Accounting": record.get("Asset Code For Accounting Purpose", "N/A")
+    }
 
-    # عرض الخريطة التفاعلية إذا كان هناك إحداثيات
+    st.subheader("📋 General Asset Information")
+    st.dataframe(pd.DataFrame(general_info.items(), columns=["Field", "Value"]))
+
+    st.subheader("📊 Accounting Classification")
+    st.dataframe(pd.DataFrame(accounting_info.items(), columns=["Field", "Value"]))
+
+    # عرض الخريطة التفاعلية
     coords = record.get("Geographical Coordinates")
     if isinstance(coords, str) and "," in coords:
         try:
             lat, lon = map(float, coords.split(","))
             m = folium.Map(location=[lat, lon], zoom_start=16)
             folium.Marker([lat, lon], tooltip="Asset Location").add_to(m)
-            st.subheader("📍 Asset Location on Map")
+            st.subheader("🗺️ Asset Location on Map")
             st_folium(m, width=700, height=500)
         except:
             st.warning("⚠️ Could not parse coordinates.")
