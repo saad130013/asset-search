@@ -2,10 +2,10 @@
 import streamlit as st
 import pandas as pd
 
-# تحميل البيانات مع تحديد الصف 1 كرأس
+# تحميل البيانات من الصف الصحيح
 df = pd.read_excel("assetv4.xlsx", header=1)
 
-# اسم العمود الصحيح
+# العمود المستخدم في البحث
 search_column = 'Tag number'
 
 # دالة تنظيف
@@ -30,14 +30,22 @@ if asset_id:
         st.success("✅ Asset found. Details below:")
         record = result.iloc[0]
         fields = {
+            "Tag Number": record.get("Tag number", "N/A"),
             "Asset Description": record.get("Asset Description", "N/A"),
-            "Tag Number": record.get(search_column, "N/A"),
             "Entity": record.get("Entity", "N/A"),
-            "City": record.get("City", "N/A"),
+            "Entity Code": record.get("Entity Code", "N/A"),
             "Cost": record.get("Cost", "N/A"),
             "Useful Life": record.get("Useful Life", "N/A"),
             "Remaining Life": record.get("Remaining Life", "N/A"),
+            "City": record.get("City", "N/A"),
+            "Region": record.get("Region", "N/A"),
             "National Address ID": record.get("National Address ID", "N/A"),
+            "Building Number": record.get("Building Number", "N/A"),
+            "Floors Number": record.get("Floors Number", "N/A"),
+            "Room/office Number": record.get("Room/office Number", "N/A"),
+            "Valuation Method": record.get("Valuation Method", "N/A"),
+            "Geographical Coordinates": record.get("Geographical Coordinates", "N/A"),
+            "Comments": record.get("Comments", "N/A")
         }
 
         for key, value in fields.items():
