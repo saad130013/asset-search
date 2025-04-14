@@ -1,12 +1,11 @@
 
 import streamlit as st
 import pandas as pd
+import folium
+from streamlit_folium import st_folium
 
-# تحميل البيانات من الصف الصحيح
+# تحميل البيانات
 df = pd.read_excel("assetv4.xlsx", header=1)
-
-# العمود المستخدم في البحث
-search_column = 'Tag number'
 
 # دالة تنظيف
 def normalize(value):
@@ -15,40 +14,79 @@ def normalize(value):
     return str(value).strip().replace('\u200f', '').replace('\u202a', '').replace('\xa0', '').replace(" ", "")
 
 # إعداد الصفحة
-st.set_page_config(page_title="Asset Lookup System", layout="centered", page_icon="📁")
+st.set_page_config(page_title="Asset Lookup System", layout="wide", page_icon="📁")
 st.title("🔍 Asset Lookup System")
 
-# إدخال رقم الأصل
-asset_id = st.text_input("📌 Enter Tag Number:")
+# البحث متعدد المعايير
+st.sidebar.header("🔎 Filters")
 
-if asset_id:
-    asset_id_clean = normalize(asset_id)
-    df['__normalized__'] = df[search_column].apply(normalize)
-    result = df[df['__normalized__'] == asset_id_clean]
+tag_number = st.sidebar.text_input("Tag Number")
+entity = st.sidebar.selectbox("Entity", [""] + sorted(df["Entity"].dropna().unique().astype(str)))
+city = st.sidebar.selectbox("City", [""] + sorted(df["City"].dropna().unique().astype(str)))
+min_cost = st.sidebar.number_input("Minimum Cost", min_value=0, value=0)
+max_life = st.sidebar.number_input("Max Useful Life", min_value=0, value=100)
 
-    if not result.empty:
-        st.success("✅ Asset found. Details below:")
-        record = result.iloc[0]
-        fields = {
-            "Tag Number": record.get("Tag number", "N/A"),
-            "Asset Description": record.get("Asset Description", "N/A"),
-            "Entity": record.get("Entity", "N/A"),
-            "Entity Code": record.get("Entity Code", "N/A"),
-            "Cost": record.get("Cost", "N/A"),
-            "Useful Life": record.get("Useful Life", "N/A"),
-            "Remaining Life": record.get("Remaining Life", "N/A"),
-            "City": record.get("City", "N/A"),
-            "Region": record.get("Region", "N/A"),
-            "National Address ID": record.get("National Address ID", "N/A"),
-            "Building Number": record.get("Building Number", "N/A"),
-            "Floors Number": record.get("Floors Number", "N/A"),
-            "Room/office Number": record.get("Room/office Number", "N/A"),
-            "Valuation Method": record.get("Valuation Method", "N/A"),
-            "Geographical Coordinates": record.get("Geographical Coordinates", "N/A"),
-            "Comments": record.get("Comments", "N/A")
-        }
+# تطبيق الفلاتر
+filtered_df = df.copy()
 
-        for key, value in fields.items():
-            st.write(f"**{key}**: {value}")
-    else:
-        st.error("❌ No asset found with that number.")
+if tag_number:
+    filtered_df = filtered_df[filtered_df["Tag number"].astype(str).apply(normalize) == normalize(tag_number)]
+if entity:
+    filtered_df = filtered_df[filtered_df["Entity"].astype(str) == entity]
+if city:
+    filtered_df = filtered_df[filtered_df["City"].astype(str) == city]
+if min_cost > 0:
+    filtered_df = filtered_df[pd.to_numeric(filtered_df["Cost"], errors='coerce') >= min_cost]
+if max_life < 100:
+    filtered_df = filtered_df[pd.to_numeric(filtered_df["Useful Life"], errors='coerce') <= max_life]
+
+if not filtered_df.empty:
+    record = filtered_df.iloc[0]
+    st.success("✅ Asset found. Details below:")
+
+    fields = {
+        "Tag Number": record.get("Tag number", "N/A"),
+        "Asset Description": record.get("Asset Description", "N/A"),
+        "Entity": record.get("Entity", "N/A"),
+        "Entity Code": record.get("Entity Code", "N/A"),
+        "Cost": record.get("Cost", "N/A"),
+        "Useful Life": record.get("Useful Life", "N/A"),
+        "Remaining Life": record.get("Remaining Life", "N/A"),
+        "City": record.get("City", "N/A"),
+        "Region": record.get("Region", "N/A"),
+        "National Address ID": record.get("National Address ID", "N/A"),
+        "Building Number": record.get("Building Number", "N/A"),
+        "Floors Number": record.get("Floors Number", "N/A"),
+        "Room/office Number": record.get("Room/office Number", "N/A"),
+        "Geographical Coordinates": record.get("Geographical Coordinates", "N/A"),
+        "Level 1 FA Module Code": record.get("Level 1 FA Module Code", "N/A"),
+        "Level 1 FA Module - Arabic Description": record.get("Level 1 FA Module - Arabic Description", "N/A"),
+        "Level 1 FA Module - English Description": record.get("Level 1 FA Module - English Description", "N/A"),
+        "Level 2 FA Module Code": record.get("Level 2 FA Module Code", "N/A"),
+        "Level 2 FA Module - Arabic Description": record.get("Level 2 FA Module - Arabic Description", "N/A"),
+        "Level 2 FA Module - English Description": record.get("Level 2 FA Module - English Description", "N/A"),
+        "Level 3 FA Module Code": record.get("Level 3 FA Module Code", "N/A"),
+        "Level 3 FA Module - Arabic Description": record.get("Level 3 FA Module - Arabic Description", "N/A"),
+        "Level 3 FA Module - English Description": record.get("Level 3 FA Module - English Description", "N/A"),
+        "accounting group Code": record.get("accounting group Code", "N/A"),
+        "accounting group Arabic Description": record.get("accounting group Arabic Description", "N/A"),
+        "accounting group English Description": record.get("accounting group English Description", "N/A"),
+        "Asset Code For Accounting Purpose": record.get("Asset Code For Accounting Purpose", "N/A")
+    }
+
+    for key, value in fields.items():
+        st.write(f"**{key}**: {value}")
+
+    # عرض الخريطة التفاعلية إذا كان هناك إحداثيات
+    coords = record.get("Geographical Coordinates")
+    if isinstance(coords, str) and "," in coords:
+        try:
+            lat, lon = map(float, coords.split(","))
+            m = folium.Map(location=[lat, lon], zoom_start=16)
+            folium.Marker([lat, lon], tooltip="Asset Location").add_to(m)
+            st.subheader("📍 Asset Location on Map")
+            st_folium(m, width=700, height=500)
+        except:
+            st.warning("⚠️ Could not parse coordinates.")
+else:
+    st.warning("🔍 No matching assets found. Adjust your filters and try again.")
