@@ -2,11 +2,17 @@
 import streamlit as st
 import pandas as pd
 
-# تحميل البيانات من ملف Excel
+# تحميل البيانات
 df = pd.read_excel("assetv4.xlsx", header=2)
 
-# اسم عمود رقم البطاقة (TAG NUMBER)
+# اسم العمود المستخدم للبحث
 search_column = 'رقم البطاقة'
+
+# دالة تنظيف وتطبيع القيم
+def normalize(value):
+    if pd.isna(value):
+        return ""
+    return str(value).strip().replace('\u200f', '').replace('\u202a', '').replace('\xa0', '').replace(" ", "")
 
 # إعداد الصفحة
 st.set_page_config(page_title="نظام البحث عن الأصول", layout="centered", page_icon="📁")
@@ -15,10 +21,10 @@ st.title("🔍 نظام البحث عن الأصول")
 # إدخال رقم الأصل
 asset_id = st.text_input("📌 أدخل رقم الأصل:")
 
-# عند البحث
 if asset_id:
-    asset_id_clean = asset_id.strip()
-    result = df[df[search_column].astype(str).str.strip() == asset_id_clean]
+    asset_id_clean = normalize(asset_id)
+    df['__normalized__'] = df[search_column].apply(normalize)
+    result = df[df['__normalized__'] == asset_id_clean]
 
     if not result.empty:
         st.success("✅ تم العثور على الأصل. التفاصيل:")
